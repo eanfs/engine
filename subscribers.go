@@ -49,6 +49,12 @@ func (s *Subscribers) Len() int {
 	return len(s.public)
 }
 
+// TotalLen 返回所有订阅者数量（包括内部订阅者如录制）
+// 用于 IdleTimeout 判断，避免只有内部订阅者时误触发流关闭
+func (s *Subscribers) TotalLen() int {
+	return len(s.public) + len(s.internal)
+}
+
 func (s *Subscribers) RangeAll(f func(sub ISubscriber)) {
 	s.rangeAll(func(sub ISubscriber, wait *waitTracks) {
 		f(sub)

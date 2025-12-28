@@ -428,7 +428,9 @@ func (s *Stream) onSuberClose(sub ISubscriber) {
 	if s.Publisher != nil {
 		s.Publisher.OnEvent(sub) // 通知Publisher有订阅者离开，在回调中可以去获取订阅者数量
 	}
-	if (s.DelayCloseTimeout > 0 || s.IdleTimeout > 0) && s.Subscribers.Len() == 0 && !sub.GetSubscriber().Config.Internal {
+	// 使用 TotalLen() 确保内部订阅者（如录制）也被计入
+	// 只有当所有订阅者（包括内部订阅者）都离开后，才触发 ACTION_LASTLEAVE
+	if (s.DelayCloseTimeout > 0 || s.IdleTimeout > 0) && s.Subscribers.TotalLen() == 0 && !sub.GetSubscriber().Config.Internal {
 		s.action(ACTION_LASTLEAVE)
 	}
 }
@@ -502,7 +504,9 @@ func (s *Stream) run() {
 						s.action(ACTION_TIMEOUT)
 						continue
 					}
-					if s.IdleTimeout > 0 && s.Subscribers.Len() == 0 && time.Since(s.StartTime) > s.IdleTimeout {
+					// 使用 TotalLen() 而非 Len()，确保内部订阅者（如录制）也被计入
+					// 避免只有录制订阅者时误触发 ACTION_LASTLEAVE 导致录制中止
+					if s.IdleTimeout > 0 && s.Subscribers.TotalLen() == 0 && time.Since(s.StartTime) > s.IdleTimeout {
 						s.action(ACTION_LASTLEAVE)
 						continue
 					}
